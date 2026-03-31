@@ -25,7 +25,7 @@ from utils import plot_mean_over_variance, plot_sample_distance_heatmap, plot_ra
 
 
 ```{python}
-with open("./results/models/model_~condition.pkl",'rb') as f:
+with open("../results/models/model_~condition.pkl",'rb') as f:
     adata = pkl.load(f)
 ```
 

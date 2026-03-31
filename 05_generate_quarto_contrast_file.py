@@ -28,17 +28,19 @@ contrast_files = [
 ]
 
 # --------------------------------------------------
-# Copy QC.qmd
+# Copy required files
 # --------------------------------------------------
-qc_source = "QC.qmd"
-qc_dest = os.path.join(output_folder, "QC.qmd")
+files_to_copy = ["QC.qmd", "utils.py"]
 
-if os.path.exists(qc_source):
-    shutil.copy(qc_source, qc_dest)
-    print(f"Copied: {qc_dest}")
-else:
-    print("⚠️ QC.qmd not found, skipping copy.")
+for file in files_to_copy:
+    src = file
+    dst = os.path.join(output_folder, file)
 
+    if os.path.exists(src):
+        shutil.copy(src, dst)
+        print(f"Copied: {dst}")
+    else:
+        print(f"⚠️ {file} not found, skipping.")
 # --------------------------------------------------
 # Read QMD template
 # --------------------------------------------------
