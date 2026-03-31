@@ -12,8 +12,8 @@ This repository provides a full pipeline to go from **raw count data** to:
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-name>
+git clone https://github.com/mbrochut/bulkRNA-seq_template.git
+cd bulkRNA-seq_template
 ```
 
 ---
@@ -253,3 +253,23 @@ This pipeline provides:
 * Fully reproducible reporting
 
 👉 From raw counts → publication-ready report in a few steps
+
+
+## In Progress
+
+The following features are currently under development:
+
+* **Snakemake pipeline**
+
+* **Transcription Factor Inference**
+  → Identification of key regulatory TFs driving expression changes with decoupleR package
+
+* **Summary of Pathway Analysis**
+  → Aggregated view across contrasts (global enrichment patterns)
+
+* **Heatmaps**
+  → Improved visualization of gene expression and pathway activity for specific genes of interest
+
+---
+
+Contributions, suggestions, and feedback are welcome!
