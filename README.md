@@ -21,9 +21,9 @@ cd bulkRNA-seq_template
 ### 2. Create and activate environment
 
 ```bash
-python -m venv env
+python3 -m venv env
 
-# bash / zsh
+# bash
 source env/bin/activate
 
 # fish
@@ -51,7 +51,7 @@ plotly_get_chrome
 ## Project Initialization
 
 ```bash
-python 00_init_repo.py --organism Mouse
+python 00_init_repo.py --organism Mouse # TO USE WITH TESTING DATA
 # or
 python 00_init_repo.py --organism Human
 ```
