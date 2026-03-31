@@ -1,0 +1,128 @@
+---
+title: "QC"
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+
+
+```{python}
+import pandas as pd
+import anndata as ad
+import numpy as np
+import scanpy as sc
+import pickle as pkl
+
+from pydeseq2.dds import DeseqDataSet
+
+from itables import show
+from IPython.display import display, Markdown
+from utils import plot_mean_over_variance, plot_sample_distance_heatmap, plot_raw_vs_normed_counts, pca_from_adata, plot_pca_plotly
+```
+
+
+
+```{python}
+with open("./results/models/model_~condition.pkl",'rb') as f:
+    adata = pkl.load(f)
+```
+
+```{python}
+raw_data = pd.DataFrame(
+    adata.X.T,
+    index=adata.var.index,
+    columns=adata.obs.index
+)
+
+# Insert gene_name as FIRST column
+raw_data.insert(0, "gene_name", adata.var.loc[raw_data.index, "gene_name"])
+```
+
+## Data
+
+::: panel-tabset
+## Meta Data
+```{python}
+show(adata.obs,maxBytes=0)
+```
+
+## Raw data
+```{python}
+#| column: page
+show(raw_data,maxBytes=0)
+```
+:::
+
+## plots
+
+### mean over variance
+
+```{python}
+#| column: page-inset-right
+plot_mean_over_variance(adata)
+```
+
+### Dispersion
+![](../results/QC/dispersion_~condition.png){width=90%}
+
+### Boxplots
+```{python}
+sc.tl.pca(adata,layer='vst_counts')
+adata.layers['raw_counts'] = adata.X.copy()
+adata.X = adata.layers['vst_counts']
+sc.pp.neighbors(adata)
+sc.tl.umap(adata)
+```
+
+```{python}
+#| column: page
+plot_raw_vs_normed_counts(adata=adata,figsize=(12,8))
+```
+
+### clustermap
+
+```{python}
+#| column: page-inset-right
+plot_sample_distance_heatmap(adata,layer='vst_counts')
+```
+
+
+### PCA All genes
+
+::: panel-tabset
+```{python}
+#| output: asis
+
+for col in adata.obs.columns.unique():
+    display(Markdown(f"## {col}"))
+    sc.pl.pca(adata,color=col,size=150,annotate_var_explained=True)
+    display(Markdown(f" "))
+```
+:::
+### UMAP
+
+::: panel-tabset
+```{python}
+#| output: asis
+
+for col in adata.obs.columns.unique():
+    display(Markdown(f"## {col}"))
+    sc.pl.umap(adata,color=col,size=150)
+    display(Markdown(f" "))
+```
+:::
+
+### PCA top 1000 genes
+
+```{python}
+sc.pp.highly_variable_genes(adata,n_top_genes=1000,layer='vst_counts')
+sc.pp.pca(adata,layer='vst_counts')
+```
+```{python}
+#| column: page
+pca_data,var = pca_from_adata(adata)
+plot_pca_plotly(pca_data,var,title='')
+```
+

@@ -1,6 +1,6 @@
 import os
 from ruamel.yaml import YAML
-
+import shutil
 # --------------------------------------------------
 # Parameters
 # --------------------------------------------------
@@ -26,6 +26,18 @@ contrast_files = [
     f for f in os.listdir(contrast_folder)
     if f.endswith(".csv")
 ]
+
+# --------------------------------------------------
+# Copy QC.qmd
+# --------------------------------------------------
+qc_source = "QC.qmd"
+qc_dest = os.path.join(output_folder, "QC.qmd")
+
+if os.path.exists(qc_source):
+    shutil.copy(qc_source, qc_dest)
+    print(f"Copied: {qc_dest}")
+else:
+    print("⚠️ QC.qmd not found, skipping copy.")
 
 # --------------------------------------------------
 # Read QMD template

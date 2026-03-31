@@ -1,0 +1,227 @@
+---
+title: ""
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+
+```{python}
+import pandas as pd
+import gseapy as gp
+import plotly.express as px
+import json
+import numpy as np
+from gseapy import Biomart
+import plotly.graph_objs as go
+from itables import show
+
+from utils import volcano_plotly, ORA_plotly, GSEA_plotly,volcano_matplotlib_with_textalloc
+```
+
+## Data
+
+```{python}
+#| column: page-right
+contrast = ""
+df = pd.read_csv(f"../results/contrasts/{contrast}.csv",sep=';')
+
+df_todisplay = df.copy()
+df_todisplay = df_todisplay.dropna(subset='padj')
+df_todisplay = df_todisplay[['gene_id','gene_name','baseMean','log2FoldChange','pvalue','padj']]
+show(df_todisplay,maxBytes=0)
+```
+
+## Volcano plot
+
+```{python}
+color_palette = ('#00BFC4','#F8766D') #treated, control
+```
+
+:::panel-tabset
+
+## plotly
+```{python}
+#| column: screen-inset-right
+volcano_plotly(df, cutoff_fc=0.58, cutoff_p=0.05,highlight_n=30,xlim=(-5,5),color_palette=color_palette)
+```
+
+## cleaned
+```{python}
+#| column: screen-inset-right
+volcano_matplotlib_with_textalloc(df,cutoff_p=0.05,highlight_n=30,x_range=(-8,8),color_palette=color_palette)
+```
+:::
+
+```{python}
+ora_res = pd.read_csv(f"../results/pathway/ORA/ORA_GO_{contrast}_ALL.csv",sep=';')
+ora_res_up = pd.read_csv(f"../results/pathway/ORA/ORA_GO_{contrast}_UP.csv",sep=';')
+ora_res_down = pd.read_csv(f"../results/pathway/ORA/ORA_GO_{contrast}_DOWN.csv",sep=';')
+```
+
+
+## Pathway
+
+### ORA plot
+
+::: panel-tabset
+
+## Total
+
+```{python}
+#| column: page
+ORA_plotly(ora_res,height=1000,width=1100)
+```
+
+## Up
+```{python}
+#| column: page
+ORA_plotly(ora_res_up,height=1000,width=1100)
+```
+
+## Down
+```{python}
+#| column: page
+ORA_plotly(ora_res_down,height=1000,width=1100)
+```
+
+
+:::
+
+### ORA Data
+
+::: panel-tabset
+
+## Total
+
+```{python}
+#| column: screen-inset
+ora_res_todisplay = ora_res[['Term','Overlap_Ratio','P-value','Adjusted P-value', 'Odds Ratio','Count','Genes']]
+show(ora_res_todisplay,maxBytes=0)
+```
+
+## Up
+
+```{python}
+#| column: screen-inset
+
+ora_res_up_todisplay = ora_res_up[['Term','Overlap_Ratio','P-value','Adjusted P-value', 'Odds Ratio','Count','Genes']]
+show(ora_res_up_todisplay,maxBytes=0)
+```
+
+
+## Down
+```{python}
+#| column: screen-inset
+ora_res_down_todisplay = ora_res_down[['Term','Overlap_Ratio','P-value','Adjusted P-value', 'Odds Ratio','Count','Genes']]
+show(ora_res_down_todisplay,maxBytes=0)
+```
+
+:::
+
+```{python}
+gsea_res_mouse_go = pd.read_csv(f"../results/pathway/GSEA/GSEA_GO_{contrast}.csv",sep=';')
+gsea_res_mouse_kegg = pd.read_csv(f"../results/pathway/GSEA/GSEA_KEGG_{contrast}.csv",sep=';')
+gsea_res_mouse_HM = pd.read_csv(f"../results/pathway/GSEA/GSEA_HM_{contrast}.csv",sep=';')
+```
+
+### GSEA plot
+
+::: panel-tabset
+
+## GO ALL
+
+```{python}
+#| column: page
+GSEA_plotly(gsea_res_mouse_go)
+```
+
+## GO UP
+```{python}
+#| column: page
+gsea_res_mouse_go_up = gsea_res_mouse_go[gsea_res_mouse_go['NES']>0]
+GSEA_plotly(gsea_res_mouse_go_up)
+```
+
+## GO Down
+
+```{python}
+#| column: page
+gsea_res_mouse_go_down = gsea_res_mouse_go[gsea_res_mouse_go['NES']<0]
+GSEA_plotly(gsea_res_mouse_go_down)
+```
+
+## KEGG ALL
+
+```{python}
+#| column: page
+gsea_res_mouse_kegg
+GSEA_plotly(gsea_res_mouse_kegg)
+```
+
+## KEGG UP
+
+```{python}
+#| column: page
+gsea_res_mouse_kegg_up = gsea_res_mouse_kegg[gsea_res_mouse_kegg['NES']>0] 
+GSEA_plotly(gsea_res_mouse_kegg_up)
+```
+## KEGG DOWN
+
+```{python}
+#| column: page
+gsea_res_mouse_kegg_down = gsea_res_mouse_kegg[gsea_res_mouse_kegg['NES']<0] 
+GSEA_plotly(gsea_res_mouse_kegg_down)
+```
+
+## Hallmark ALL
+
+```{python}
+#| column: page
+GSEA_plotly(gsea_res_mouse_HM)
+```
+## Hallmark UP
+
+```{python}
+#| column: page
+gsea_res_mouse_HM_up = gsea_res_mouse_HM[gsea_res_mouse_HM['NES']>0]
+GSEA_plotly(gsea_res_mouse_HM_up)
+```
+## Hallmark DOWN
+
+```{python}
+#| column: page
+gsea_res_mouse_HM_down = gsea_res_mouse_HM[gsea_res_mouse_HM['NES']<0]
+GSEA_plotly(gsea_res_mouse_HM_down)
+```
+
+:::
+
+### GSEA data
+
+::: panel-tabset
+
+## GO
+
+```{python}
+#| column: screen-inset
+gsea_res_mouse_go_todisplay = gsea_res_mouse_go[['Term','NES','FDR q-val non zero','Tag_%','Gene %', 'Lead_genes']]
+show(gsea_res_mouse_go_todisplay,maxBytes=0)
+```
+
+## KEGG
+```{python}
+#| column: screen-inset
+gsea_res_mouse_kegg_todisplay = gsea_res_mouse_kegg[['Term','NES','FDR q-val non zero','Tag_%','Gene %', 'Lead_genes']]
+show(gsea_res_mouse_kegg_todisplay,maxBytes=0)
+```
+
+## Hallmark
+```{python}
+#| column: screen-inset
+gsea_res_mouse_HM_todisplay = gsea_res_mouse_HM[['Term','NES','FDR q-val non zero','Tag_%','Gene %', 'Lead_genes']]
+show(gsea_res_mouse_HM_todisplay,maxBytes=0)
+```
+
+:::
