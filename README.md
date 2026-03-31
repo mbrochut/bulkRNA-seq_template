@@ -51,9 +51,9 @@ plotly_get_chrome
 ## Project Initialization
 
 ```bash
-python 00_init_repo.py Mouse
+python 00_init_repo.py --organism Mouse
 # or
-python 00_init_repo.py Human
+python 00_init_repo.py --organism Human
 ```
 
 This will:
@@ -89,7 +89,7 @@ results/
 
 Must be **wide format**:
 
-| gene_id    | gene_name | sample_1 | sample_2 | ... |
+| gene_id    | gene_name | OC1  | OC2  | ... |
 | ---------- | --------- | -------- | -------- | --- |
 | ENSMUSG... | Gnai3     | 6591     | 6228     | ... |
 
@@ -100,11 +100,11 @@ Must be **wide format**:
 
 ### Metadata (`.xlsx`)
 
-| sample_id | treatment | stimulation | Age |
+| id | treatment | stimulation | Age |
 | --------- | --------- | ----------- | --- |
 | OC1       | Control   | NO          | Old |
 
-* `sample_id` must match column names in expression matrix
+* `id` must match column names in expression matrix
 
 
 ---
