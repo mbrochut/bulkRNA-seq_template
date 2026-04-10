@@ -8,7 +8,7 @@ import textalloc as ta
 
 
 from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage, leaves_list
 
 import plotly.graph_objects as go
 from plotly.colors import DEFAULT_PLOTLY_COLORS
@@ -642,5 +642,216 @@ def plot_pca_plotly(df_pca, explained_variance, title='',save=None):
     fig.show()
 
 
+def prepare_df_for_top_N_pathways(df,db = 'GO',db_col='db',p_value_col='FDR q-val',contrast_col='contrast',top_n = 10):
+    
+    full_df_DB = df[df[db_col]==db]
+    top_n_per_contrast = full_df_DB.sort_values([p_value_col]).groupby([contrast_col]).head(top_n)
+    top_n_per_contrast = top_n_per_contrast.drop_duplicates('Term')
+    pathways_of_interest = top_n_per_contrast['Term'].tolist()
+    db_ready_to_plot = df[df['Term'].isin(pathways_of_interest)]
+    return db_ready_to_plot
 
 
+
+ # Define a function to add significance stars based on the p-value
+def significance_stars(pval):
+    if pval < 0.0001:
+        return '****'
+    elif pval < 0.001:
+        return '***'
+    elif pval < 0.01:
+        return '**'
+    elif pval < 0.05:
+        return '*'
+    else:
+        return ''
+
+
+def plot_NES_heatmap_with_significance(
+    df,
+    custom_order=None,
+    width=1000,
+    height=1500
+):
+    # --------------------------------------------------
+    # 0. Edge cases
+    # --------------------------------------------------
+    if df is None or df.empty:
+        print("Empty dataframe: nothing to plot.")
+        return None
+
+    df = df.copy()
+
+    # --------------------------------------------------
+    # 1. Ordering
+    # --------------------------------------------------
+    if custom_order is None:
+        custom_order = df['contrast'].unique().tolist()
+
+    df['contrast'] = pd.Categorical(
+        df['contrast'],
+        categories=custom_order,
+        ordered=True
+    )
+    df = df.sort_values(by=['contrast', 'Term'])
+
+    # --------------------------------------------------
+    # 2. Pivot
+    # --------------------------------------------------
+    nes_matrix = df.pivot_table(index='Term', columns='contrast', values='NES')
+    fdr_matrix = df.pivot_table(index='Term', columns='contrast', values='FDR q-val non zero')
+
+    if nes_matrix.empty or fdr_matrix.empty:
+        print("Empty pivot table: nothing to plot.")
+        return None
+
+    # --------------------------------------------------
+    # 3. Transform for clustering
+    # --------------------------------------------------
+    log_fdr_matrix = -np.log10(fdr_matrix)
+    log_fdr_matrix.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # --------------------------------------------------
+    # 4. Clustering (only if >1 row AND >1 column)
+    # --------------------------------------------------
+    if log_fdr_matrix.shape[0] > 1 and log_fdr_matrix.shape[1] > 1:
+        Z = linkage(log_fdr_matrix.fillna(0), method='ward')
+        clustered_terms = leaves_list(Z)
+
+        nes_matrix_clustered = nes_matrix.iloc[clustered_terms]
+        fdr_matrix_clustered = fdr_matrix.iloc[clustered_terms]
+    else:
+        nes_matrix_clustered = nes_matrix
+        fdr_matrix_clustered = fdr_matrix
+
+    # --------------------------------------------------
+    # 5. Significance stars
+    # --------------------------------------------------
+    stars_matrix = fdr_matrix_clustered.applymap(significance_stars)
+
+    # --------------------------------------------------
+    # 6. Plot
+    # --------------------------------------------------
+    fig = px.imshow(
+        nes_matrix_clustered,
+        color_continuous_scale='RdBu_r',
+        aspect='auto',
+        labels=dict(x="Condition", y="Pathway", color="NES"),
+        title="Top pathways per contrast (GSEA)",
+        zmin=nes_matrix.min().min(),
+        zmax=nes_matrix.max().max(),
+        text_auto=False,  # we control text manually
+    )
+
+    # Add stars
+    fig.data[0]['text'] = stars_matrix.values
+    fig.data[0]['texttemplate'] = '%{text}'
+
+    fig.update_layout(
+        xaxis_title="Condition",
+        yaxis_title="Pathway",
+        width=width,
+        height=height,
+    )
+
+    fig.show()
+
+
+def plot_pathway_enrichment_heatmap(
+    df,
+    contrast_col='contrast',
+    p_value='Adjusted P-value',
+    custom_order=None,
+    width=1000,
+    height=1500,
+    zmin=None,
+    zmax=None
+):
+    # --------------------------------------------------
+    # 0. Edge cases
+    # --------------------------------------------------
+    if df is None or df.empty:
+        print("Empty dataframe: nothing to plot.")
+        return None
+
+    # --------------------------------------------------
+    # 1. Ordering
+    # --------------------------------------------------
+    if custom_order is None:
+        custom_order = df[contrast_col].unique().tolist()
+
+    df = df.copy()
+    df[contrast_col] = pd.Categorical(
+        df[contrast_col],
+        categories=custom_order,
+        ordered=True
+    )
+    df = df.sort_values(by=[contrast_col, 'Term'])
+
+    # --------------------------------------------------
+    # 2. Pivot
+    # --------------------------------------------------
+    heatmap_data = df.pivot_table(
+        index='Term',
+        columns=contrast_col,
+        values=p_value
+    )
+
+    if heatmap_data.empty:
+        print("Empty pivot table: nothing to plot.")
+        return None
+
+    # --------------------------------------------------
+    # 3. Transform
+    # --------------------------------------------------
+    heatmap_data_log = -np.log10(heatmap_data)
+    heatmap_data_log.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+    # --------------------------------------------------
+    # 4. Clustering (only if >1 row)
+    # --------------------------------------------------
+    if heatmap_data_log.shape[0] > 1:
+        Z = linkage(heatmap_data_log.fillna(0), method='ward')
+        clustered_terms = leaves_list(Z)
+        heatmap_data_clustered = heatmap_data_log.iloc[clustered_terms]
+        heatmap_data_clustered_original = heatmap_data.iloc[clustered_terms]
+    else:
+        # No clustering
+        heatmap_data_clustered = heatmap_data_log
+        heatmap_data_clustered_original = heatmap_data
+
+    # --------------------------------------------------
+    # 5. Plot
+    # --------------------------------------------------
+    fig = px.imshow(
+        heatmap_data_clustered,
+        color_continuous_scale='Viridis',
+        aspect='auto',
+        labels=dict(
+            x="Condition",
+            y="Pathway",
+            color=f"-log10({p_value})"
+        ),
+        title="Pathway Enrichment Heatmap",
+        zmin=zmin,
+        zmax=zmax,
+    )
+
+    # Hover info
+    fig.data[0]['hovertemplate'] = (
+        'Condition: %{x}<br>' +
+        'Pathway: %{y}<br>' +
+        '-log10(FDR q-val): %{z}<br>' +
+        'Original FDR q-val: %{customdata}<extra></extra>'
+    )
+
+    fig.data[0]['customdata'] = heatmap_data_clustered_original.values
+
+    fig.update_layout(
+        xaxis_title="Condition",
+        yaxis_title="Pathway",
+        width=width,
+        height=height,
+    )
+
+    fig.show()

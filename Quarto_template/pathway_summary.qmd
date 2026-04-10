@@ -1,0 +1,78 @@
+---
+title: "Pathway summary"
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+
+```{python}
+import pandas as pd
+
+from utils import plot_NES_heatmap_with_significance,plot_pathway_enrichment_heatmap, prepare_df_for_top_N_pathways
+```
+
+
+```{python}
+ORA = pd.read_csv("../results/pathway/concat/concat_ORA.csv")
+GSEA = pd.read_csv("../results/pathway/concat/concat_GSEA.csv")
+```
+
+```{python}
+ORA_ALL = ORA[ORA['direction']=='ALL']
+ORA_UP = ORA[ORA['direction']=='UP']
+ORA_DOWN = ORA[ORA['direction']=='DOWN']
+```
+
+```{python}
+ora_GO_all = prepare_df_for_top_N_pathways(ORA,db='GO',p_value_col='Adjusted P-value')
+ora_GO_up = prepare_df_for_top_N_pathways(ORA_UP,db='GO',p_value_col='Adjusted P-value')
+ora_GO_down = prepare_df_for_top_N_pathways(ORA_DOWN,db='GO',p_value_col='Adjusted P-value')
+
+gsea_GO = prepare_df_for_top_N_pathways(GSEA,db='GO')
+gsea_HM = prepare_df_for_top_N_pathways(GSEA,db='HM')
+gsea_KEGG = prepare_df_for_top_N_pathways(GSEA,db='KEGG')
+```
+
+::: panel-tabset
+
+## ALL
+```{python}
+#| column: page
+plot_pathway_enrichment_heatmap(ora_GO_all)
+```
+
+## UP
+```{python}
+#| column: page
+plot_pathway_enrichment_heatmap(ora_GO_up)
+```
+
+## DOWN
+```{python}
+#| column: page
+plot_pathway_enrichment_heatmap(ora_GO_down)
+```
+:::
+
+::: panel-tabset
+
+## GO
+```{python}
+#| column: page
+plot_NES_heatmap_with_significance(gsea_GO)
+```
+
+## Hallmark
+```{python}
+#| column: page
+plot_NES_heatmap_with_significance(gsea_HM)
+```
+
+## KEGG
+```{python}
+#| column: page
+plot_NES_heatmap_with_significance(gsea_KEGG)
+```
+:::

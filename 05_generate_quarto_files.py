@@ -1,16 +1,24 @@
 import os
 from ruamel.yaml import YAML
 import shutil
+
 # --------------------------------------------------
 # Parameters
 # --------------------------------------------------
 contrast_folder = "./results/contrasts/"
 output_folder = "./QUARTO/"
 template_file = "template.qmd"
+template_dir = "./Quarto_template/"
 
 project_title = "HSPC Aging"
 author_name = "Maelick Brochut"
 split_to_remove = 1
+
+templates = {
+    "QC.qmd": {"include": True, "title": "Quality Control"},
+    "pathway_summary.qmd": {"include": False, "title": "Pathway summary"},
+}
+
 yaml = YAML()
 yaml.default_flow_style = False
 
@@ -18,6 +26,37 @@ yaml.default_flow_style = False
 # Setup output folder
 # --------------------------------------------------
 os.makedirs(output_folder, exist_ok=True)
+
+# --------------------------------------------------
+# Copy utils.py (always)
+# --------------------------------------------------
+if os.path.exists("utils.py"):
+    shutil.copy("utils.py", os.path.join(output_folder, "utils.py"))
+    print("Copied: utils.py")
+
+# --------------------------------------------------
+# Copy selected template QMD files
+# --------------------------------------------------
+render_files = []
+navbar_static = []
+
+for tpl, meta in templates.items():
+    if meta["include"]:
+        src = os.path.join(template_dir, tpl)
+        dst = os.path.join(output_folder, tpl)
+
+        if os.path.exists(src):
+            shutil.copy(src, dst)
+            render_files.append(tpl)
+
+            navbar_static.append({
+                "text": meta["title"],
+                "href": tpl,
+            })
+
+            print(f"Copied: {tpl}")
+        else:
+            print(f"⚠️ {tpl} not found in {template_dir}")
 
 # --------------------------------------------------
 # List contrast files
@@ -28,20 +67,6 @@ contrast_files = [
 ]
 
 # --------------------------------------------------
-# Copy required files
-# --------------------------------------------------
-files_to_copy = ["QC.qmd", "utils.py"]
-
-for file in files_to_copy:
-    src = file
-    dst = os.path.join(output_folder, file)
-
-    if os.path.exists(src):
-        shutil.copy(src, dst)
-        print(f"Copied: {dst}")
-    else:
-        print(f"⚠️ {file} not found, skipping.")
-# --------------------------------------------------
 # Read QMD template
 # --------------------------------------------------
 with open(template_file, "r") as f:
@@ -50,15 +75,12 @@ with open(template_file, "r") as f:
 contrast_entries = []
 
 # --------------------------------------------------
-# Generate QMD files
+# Generate QMD files for contrasts
 # --------------------------------------------------
 for contrast_file in contrast_files:
     contrast_name = os.path.splitext(contrast_file)[0]
 
-    split = contrast_name.split("_")
-    split = split[split_to_remove:]
-
-
+    split = contrast_name.split("_")[split_to_remove:]
     title = " ".join(split)
 
     contrast_entries.append(
@@ -79,10 +101,7 @@ for contrast_file in contrast_files:
         f'author: "{author_name}"',
     )
 
-    output_file = os.path.join(
-        output_folder,
-        f"{contrast_name}.qmd",
-    )
+    output_file = os.path.join(output_folder, f"{contrast_name}.qmd")
 
     with open(output_file, "w") as out:
         out.write(content)
@@ -95,18 +114,17 @@ for contrast_file in contrast_files:
 quarto_config = {
     "project": {
         "type": "website",
-        "render": ["QC.qmd"]
-        + [f"{e['name']}.qmd" for e in contrast_entries],
+        "render": (
+            render_files + [f"{e['name']}.qmd" for e in contrast_entries]
+        ),
     },
-    "author": [
-        {"name": author_name}
-    ],
+    "author": [{"name": author_name}],
     "website": {
         "title": project_title,
         "navbar": {
             "left": (
-                [{"text": "Quality Control", "href": "QC.qmd"}]
-                + [
+                navbar_static +
+                [
                     {
                         "text": e["title"],
                         "href": f"{e['name']}.qmd",
