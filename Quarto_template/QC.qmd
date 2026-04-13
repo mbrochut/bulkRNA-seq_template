@@ -65,7 +65,11 @@ plot_mean_over_variance(adata)
 ```
 
 ### Dispersion
-![](../results/QC/dispersion_~condition.png){width=90%}
+
+```{python}
+adata.plot_dispersions()
+```
+
 
 ### Boxplots
 ```{python}

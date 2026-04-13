@@ -39,6 +39,11 @@ modules = {
         "include": True,
         "model": 'condition'
     },
+    "Pathway Summary": {
+        "type": "single",
+        "file": "pathway_summary.qmd",
+        "include": True,
+    },
 }
 
 yaml = YAML()
