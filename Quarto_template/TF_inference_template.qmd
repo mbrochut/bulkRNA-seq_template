@@ -1,0 +1,136 @@
+---
+title: ""
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+```{python}
+import decoupler as dc
+import scanpy as sc
+import pandas as pd
+from itables import show
+from IPython.display import Markdown
+
+import matplotlib.pyplot as plt
+```
+
+```{python}
+organism = "mouse"
+contrast = ""
+```
+
+```{python}
+net = dc.op.collectri(organism=organism)
+```
+
+```{python}
+df = pd.read_csv(f"../results/contrasts/{contrast}.csv",sep=';')
+```
+
+```{python}
+def prepare_for_ULM(df,name):
+    df = df.copy()
+    df = df.drop_duplicates('gene_name')
+    df = df.set_index('gene_name')
+    mat = df[['stat']].T.rename(index={'stat': f'{name}'})
+    return df, mat
+```
+
+
+```{python}
+deg, mat = prepare_for_ULM(df,contrast)
+```
+
+
+```{python}
+tf_acts, tf_pvals = dc.mt.ulm(data=mat, net=net)
+```
+
+```{python}
+tf_acts_to_show = tf_acts.rename(index={contrast:'Activity'})
+tf_pvals_to_show = tf_pvals.rename(index={contrast:'P-value'})
+tf_to_show = pd.concat([tf_acts_to_show,tf_pvals_to_show])
+```
+
+```{python}
+show(tf_to_show.T.sort_values("P-value"))
+```
+
+## Top 25 Transcription Factor 
+
+:::panel-tabset
+## TY_VS_CY
+```{python}
+dc.pl.barplot(
+    data=tf_acts,
+    name=contrast,
+    top=25,
+    vertical=False,
+    figsize=(3, 6)
+)
+```
+:::
+
+## Volcano plot of top 5 TF
+Here are higlhyted the genes in each contrast that are directly link to the TF network. The Volcano plot is based on the gene expression level from deseq2 analysis.
+
+```{python}
+df = df.set_index('gene_name')
+```
+
+```{python}
+# Get top 5 TFs by absolute activity
+top_tfs = tf_acts.abs().T.sort_values(by=contrast, ascending=False).head(5).index
+
+# Prepare logFCs and pvals once
+logFCs = deg[['log2FoldChange']].T.rename(index={'log2FoldChange': f'{contrast}'})
+pvals = deg[['padj']].T.rename(index={'padj': f'{contrast}'})
+```
+
+::: {.panel-tabset}
+```{python}
+#| output: asis
+for tf in top_tfs:
+  display(Markdown(f"## {tf}"))  # Tab title
+  dc.pl.volcano(
+      data=df,
+      x="log2FoldChange",
+      y="pvalue",
+      name=tf,
+      net=net,
+      top=10
+  )
+  plt.show()
+  display(Markdown(f"\n"))
+```
+:::
+
+
+## Network of top 5 TF
+
+
+:::{.callout-caution}
+The expression is actually a fold change!!
+The default graph use the gene expression but here I am using the fold change  of the contrast of interest (as propose in decoupler [decoupler]())
+:::
+
+```{python}
+#| column: page
+dc.pl.network(
+    net=net,
+    data=mat,
+    score=tf_acts,
+    sources=top_tfs.tolist(),
+    targets=10,
+    size_node=15,
+    figsize=(7, 6),
+    vcenter=True,
+    by_abs=True,
+    c_pos_w='darkgreen',
+    c_neg_w='darkred',
+    t_cmap = 'viridis',
+    s_cmap = "icefire",
+)
+```

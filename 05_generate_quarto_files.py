@@ -1,22 +1,44 @@
 import os
-from ruamel.yaml import YAML
 import shutil
+from ruamel.yaml import YAML
 
 # --------------------------------------------------
 # Parameters
 # --------------------------------------------------
 contrast_folder = "./results/contrasts/"
 output_folder = "./QUARTO/"
-template_file = "template.qmd"
 template_dir = "./Quarto_template/"
 
 project_title = "HSPC Aging"
 author_name = "Maelick Brochut"
 split_to_remove = 1
-
-templates = {
-    "QC.qmd": {"include": True, "title": "Quality Control"},
-    "pathway_summary.qmd": {"include": False, "title": "Pathway summary"},
+organism = 'mouse'
+# --------------------------------------------------
+# Modules definition
+# mode:
+#   - "menu"   → multiple pages (per contrast)
+#   - "single" → one static page
+# --------------------------------------------------
+modules = {
+    "Quality Control": {
+        "type": "single",
+        "file": "QC.qmd",
+        "include": True,
+    },
+    "Differential Analysis": {
+        "type": "menu",
+        "template": "Differential_analysis_template.qmd",
+        "prefix": "",
+        "include": True,
+        "model": 'condition'
+    },
+    "TF Inference": {
+        "type": "menu",
+        "template": "TF_inference_template.qmd",
+        "prefix": "TF_",
+        "include": True,
+        "model": 'condition'
+    },
 }
 
 yaml = YAML()
@@ -28,38 +50,34 @@ yaml.default_flow_style = False
 os.makedirs(output_folder, exist_ok=True)
 
 # --------------------------------------------------
-# Copy utils.py (always)
+# Always copy utils.py
 # --------------------------------------------------
 if os.path.exists("utils.py"):
     shutil.copy("utils.py", os.path.join(output_folder, "utils.py"))
     print("Copied: utils.py")
 
 # --------------------------------------------------
-# Copy selected template QMD files
+# Helper functions
 # --------------------------------------------------
-render_files = []
-navbar_static = []
+def build_contrast_title(name, split_to_remove=1):
+    parts = name.split("_")[split_to_remove:]
+    return " ".join(parts)
 
-for tpl, meta in templates.items():
-    if meta["include"]:
-        src = os.path.join(template_dir, tpl)
-        dst = os.path.join(output_folder, tpl)
 
-        if os.path.exists(src):
-            shutil.copy(src, dst)
-            render_files.append(tpl)
+def generate_qmd(template_path, output_path, context):
+    with open(template_path, "r") as f:
+        content = f.read()
 
-            navbar_static.append({
-                "text": meta["title"],
-                "href": tpl,
-            })
+    for key, value in context.items():
+        content = content.replace(f'{key} = ""', f'{key} = "{value}"')
+        content = content.replace(f'{key}: ""', f'{key}: "{value}"')
 
-            print(f"Copied: {tpl}")
-        else:
-            print(f"⚠️ {tpl} not found in {template_dir}")
+    with open(output_path, "w") as f:
+        f.write(content)
+
 
 # --------------------------------------------------
-# List contrast files
+# Get contrast files
 # --------------------------------------------------
 contrast_files = [
     f for f in os.listdir(contrast_folder)
@@ -67,46 +85,77 @@ contrast_files = [
 ]
 
 # --------------------------------------------------
-# Read QMD template
+# Main generation
 # --------------------------------------------------
-with open(template_file, "r") as f:
-    template_content = f.read()
+navbar = []
+render_files = []
 
-contrast_entries = []
+for module_name, cfg in modules.items():
 
-# --------------------------------------------------
-# Generate QMD files for contrasts
-# --------------------------------------------------
-for contrast_file in contrast_files:
-    contrast_name = os.path.splitext(contrast_file)[0]
+    if not cfg["include"]:
+        continue
 
-    split = contrast_name.split("_")[split_to_remove:]
-    title = " ".join(split)
+    # ------------------------------------------
+    # SINGLE FILE MODULE (e.g. QC)
+    # ------------------------------------------
+    if cfg["type"] == "single":
+        src = os.path.join(template_dir, cfg["file"])
+        dst = os.path.join(output_folder, cfg["file"])
 
-    contrast_entries.append(
-        {"name": contrast_name, "title": title}
-    )
+        if os.path.exists(src):
+            shutil.copy(src, dst)
+            print(f"Copied: {cfg['file']}")
 
-    content = template_content
-    content = content.replace(
-        'contrast = ""',
-        f'contrast = "{contrast_name}"',
-    )
-    content = content.replace(
-        'title: ""',
-        f'title: "{title}"',
-    )
-    content = content.replace(
-        'author: ""',
-        f'author: "{author_name}"',
-    )
+            navbar.append({
+                "text": module_name,
+                "href": cfg["file"],
+            })
 
-    output_file = os.path.join(output_folder, f"{contrast_name}.qmd")
+            render_files.append(cfg["file"])
+        else:
+            print(f"⚠️ Missing: {src}")
 
-    with open(output_file, "w") as out:
-        out.write(content)
+    # ------------------------------------------
+    # MENU MODULE (per contrast)
+    # ------------------------------------------
+    elif cfg["type"] == "menu":
+        template_path = os.path.join(template_dir, cfg["template"])
 
-    print(f"Generated: {output_file}")
+        if not os.path.exists(template_path):
+            print(f"⚠️ Missing template: {template_path}")
+            continue
+
+        entries = []
+
+        for contrast_file in contrast_files:
+            contrast_name = os.path.splitext(contrast_file)[0]
+            title = build_contrast_title(contrast_name, split_to_remove)
+            filename = f"{cfg['prefix']}{contrast_name}.qmd"
+            output_path = os.path.join(output_folder, filename)
+
+            context = {
+                "contrast": contrast_name,
+                "title": title,
+                "organism": organism,
+                "model": cfg['model']
+            }
+
+            generate_qmd(template_path, output_path, context)
+
+            entries.append({
+                "text": title,
+                "href": filename,
+            })
+
+            render_files.append(filename)
+
+            print(f"Generated: {filename}")
+
+        if entries:
+            navbar.append({
+                "text": module_name + f" ({cfg['model']})",
+                "menu": entries,
+            })
 
 # --------------------------------------------------
 # Generate _quarto.yml
@@ -114,24 +163,13 @@ for contrast_file in contrast_files:
 quarto_config = {
     "project": {
         "type": "website",
-        "render": (
-            render_files + [f"{e['name']}.qmd" for e in contrast_entries]
-        ),
+        "render": render_files,
     },
     "author": [{"name": author_name}],
     "website": {
         "title": project_title,
         "navbar": {
-            "left": (
-                navbar_static +
-                [
-                    {
-                        "text": e["title"],
-                        "href": f"{e['name']}.qmd",
-                    }
-                    for e in contrast_entries
-                ]
-            )
+            "left": navbar
         },
     },
     "format": {
