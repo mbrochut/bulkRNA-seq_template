@@ -1,0 +1,190 @@
+---
+title: "Venn Diagram"
+execute:
+  echo: false
+  warning: false
+  error: false
+---
+
+
+```{python}
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from itertools import combinations
+from itables import show
+from IPython.display import Markdown, display
+
+from utils import compute_gene_sets, plot_venn_from_sets, genes_to_Ncol_df
+```
+
+```{python}
+model = "condition"
+
+padj_threshold = 0.05
+FC = 1.5
+```
+
+
+```{python}
+folder = "../results/contrasts/"
+list_df = []
+for file in os.listdir(folder):
+    if model in file:
+        df = pd.read_csv(f'{folder}/{file}',sep=';')
+        file_name = file[:-4]
+        split = file_name.split("_")
+        contrast = "_".join(split[1:])
+        df['contrast'] = contrast
+        df['model'] = model
+        list_df+=[df]
+```
+
+
+```{python}
+concat = pd.concat(list_df)
+contrast_list = concat['contrast'].unique().tolist()
+```
+
+## All Contrasts
+
+### Venn Plot with intersect genes
+- P-adjusted (Padj) threshold: `{python} padj_threshold`
+- Fold Change (FC) threshold (absolute values): `{python} FC`
+```{python}
+#| layout-ncol: 2
+#| column: page
+#| fig-cap: Venn
+#| tbl-cap: table Caption
+mode = 'abs'
+de, gene_sets = compute_gene_sets(
+    concat,
+    contrasts=contrast_list,
+    mode=mode,
+    gene_col="gene_name",
+    FC=FC
+)
+title = f"DE genes ({mode})\npadj<{padj_threshold}, FC>{FC}"
+
+plot_venn_from_sets(
+    gene_sets,
+    title=title
+)
+intersection = set.intersection(*gene_sets.values())
+show(genes_to_Ncol_df(intersection,n_cols=8),searching=False,pageLength=15,caption=f'genes intersection (N={len(intersection)})') 
+```
+
+### Dataframe fo all DEGs
+
+```{python}
+#| column: page
+show(de)
+```
+
+
+## Pairwise compareason
+
+### All DEGs (absolute FC)
+```{python}
+def get_pairwise_contrasts(contrast_list):
+    return list(combinations(contrast_list, 2))
+
+pairs = get_pairwise_contrasts(contrast_list)
+```
+```{python}
+#| panel: tabset
+#| column: screen-inset
+#| output: asis
+for pair in pairs:
+    print(f"## {pair}") # Tab title
+    print("::: {layout-ncol=2}\n")
+    de, gene_sets = compute_gene_sets(
+        concat,
+        contrasts=pair,
+        mode='abs',
+        gene_col="gene_name",
+        FC=FC
+    )
+    title = f"DE genes ({mode})\npadj<{padj_threshold}, |FC|>{FC}"
+
+    plot_venn_from_sets(
+        gene_sets,
+        title=title,
+    )
+    intersection = set.intersection(*gene_sets.values())
+    df = genes_to_Ncol_df(intersection,n_cols=8)
+    show(df,searching=False,pageLength=15,caption=f'genes intersection (N={len(intersection)})')
+    show(de)
+    print(f":::\n")
+```
+
+### Up regulated genes
+```{python}
+def get_pairwise_contrasts(contrast_list):
+    return list(combinations(contrast_list, 2))
+
+pairs = get_pairwise_contrasts(contrast_list)
+```
+```{python}
+#| panel: tabset
+#| column: screen-inset
+#| output: asis
+for pair in pairs:
+    print(f"## {pair}") # Tab title
+    print("::: {layout-ncol=2}\n")
+    mode = 'up'
+    de, gene_sets = compute_gene_sets(
+        concat,
+        contrasts=pair,
+        mode=mode,
+        gene_col="gene_name",
+        FC=FC
+    )
+    title = f"DE genes ({mode})\npadj<{padj_threshold}, FC>{FC}"
+
+    plot_venn_from_sets(
+        gene_sets,
+        title=title,
+    )
+    intersection = set.intersection(*gene_sets.values())
+    df = genes_to_Ncol_df(intersection,n_cols=8)
+    show(df,searching=False,pageLength=15,caption=f'genes intersection (N={len(intersection)})')
+    show(de)
+    print(f":::\n")
+```
+
+### Down regulated genes
+```{python}
+def get_pairwise_contrasts(contrast_list):
+    return list(combinations(contrast_list, 2))
+
+pairs = get_pairwise_contrasts(contrast_list)
+```
+```{python}
+#| panel: tabset
+#| column: screen-inset
+#| output: asis
+for pair in pairs:
+    print(f"## {pair}") # Tab title
+    print("::: {layout-ncol=2}\n")
+    mode = 'down'
+    de, gene_sets = compute_gene_sets(
+        concat,
+        contrasts=pair,
+        mode=mode,
+        gene_col="gene_name",
+        FC=FC
+    )
+    title = f"DE genes ({mode})\npadj<{padj_threshold}, FC<{FC}"
+
+    plot_venn_from_sets(
+        gene_sets,
+        title=title,
+    )
+    intersection = set.intersection(*gene_sets.values())
+    df = genes_to_Ncol_df(intersection,n_cols=8)
+    show(df,searching=False,pageLength=15,caption=f'genes intersection (N={len(intersection)})')
+    show(de)
+    print(f":::\n")
+```

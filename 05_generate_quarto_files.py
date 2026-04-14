@@ -44,6 +44,11 @@ modules = {
         "file": "pathway_summary.qmd",
         "include": True,
     },
+    "Venn": {
+        "type": "single",
+        "file": "venn.qmd",
+        "include": True,
+    },
 }
 
 yaml = YAML()

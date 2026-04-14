@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import plotly.express as px
 import numpy as np
@@ -6,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import textalloc as ta
 
+from venn import venn
 
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, leaves_list
@@ -855,3 +857,99 @@ def plot_pathway_enrichment_heatmap(
     )
 
     fig.show()
+
+
+def compute_gene_sets(
+    df,
+    contrasts,
+    padj_threshold=0.05,
+    FC=1.5,
+    mode="abs",  # "abs", "up", "down"
+    gene_col="gene_name"
+):
+    """
+    Returns:
+    - de_df: filtered dataframe
+    - gene_sets: dict {contrast: set(genes)}
+    """
+    log2fc_threshold = np.log2(FC)
+    # --------------------------------------------------
+    # 1. Filter
+    # --------------------------------------------------
+    de = df[df["contrast"].isin(contrasts)].copy()
+    de = de.dropna(subset=["padj", "log2FoldChange"])
+
+    de = de[de["padj"] < padj_threshold]
+
+    if mode == "abs":
+        de = de[de["log2FoldChange"].abs() > log2fc_threshold]
+    elif mode == "up":
+        de = de[de["log2FoldChange"] > log2fc_threshold]
+    elif mode == "down":
+        de = de[de["log2FoldChange"] < -log2fc_threshold]
+    else:
+        raise ValueError("mode must be 'abs', 'up', or 'down'")
+
+    if de.empty:
+        return de, {}
+
+    # --------------------------------------------------
+    # 2. Gene sets
+    # --------------------------------------------------
+    gene_sets = {
+        c: set(de.loc[de["contrast"] == c, gene_col])
+        for c in contrasts
+    }
+    # Remove empty sets
+    gene_sets = {k: v for k, v in gene_sets.items() if len(v) > 0}
+
+    return de, gene_sets
+
+def plot_venn_from_sets(
+    gene_sets,
+    title=None,
+    save=None,
+    **kwargs
+):
+    """
+    Plot venn diagram from precomputed gene sets
+    """
+
+    if not gene_sets or len(gene_sets) < 2:
+        print("Not enough gene sets to plot.")
+        return None
+
+    venn(gene_sets,**kwargs)
+
+    if title:
+        plt.title(title)
+
+    if save:
+        os.makedirs("./figures/venn/", exist_ok=True)
+        plt.savefig(f"./figures/venn/{save}.png", dpi=300)
+
+    plt.show()
+
+def genes_to_Ncol_df(genes, n_cols=12):
+    # Convert to numpy array
+    genes = np.array(sorted(genes))
+
+    # Calculate number of rows needed
+    n_rows = int(np.ceil(len(genes) / n_cols))
+
+    # Pad with empty strings if needed
+    padded_genes = np.append(
+        genes, 
+        [''] * (n_rows * n_cols - len(genes))
+    )
+
+    # Reshape into columns
+    reshaped = padded_genes.reshape((n_rows, n_cols))
+
+    # Convert to DataFrame
+    gene_df = pd.DataFrame(
+        reshaped, 
+        columns=[f"Col {i+1}" for i in range(n_cols)]
+    )
+
+    return gene_df

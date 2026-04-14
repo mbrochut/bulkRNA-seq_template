@@ -11,7 +11,7 @@ import decoupler as dc
 import scanpy as sc
 import pandas as pd
 from itables import show
-from IPython.display import Markdown
+from IPython.display import Markdown,display
 
 import matplotlib.pyplot as plt
 ```
