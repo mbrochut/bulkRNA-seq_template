@@ -17,7 +17,7 @@ from gseapy import Biomart
 import plotly.graph_objs as go
 from itables import show
 
-from utils import volcano_plotly, ORA_plotly, GSEA_plotly,volcano_matplotlib_with_textalloc
+from utils import volcano_plotly, ORA_plotly, GSEA_plotly,volcano_matplotlib_with_textalloc,pca_from_adata
 ```
 
 ## Data
@@ -33,6 +33,41 @@ df_todisplay = df_todisplay[['gene_id','gene_name','baseMean','log2FoldChange','
 show(df_todisplay,maxBytes=0)
 ```
 
+```{python}
+# Define the cutoff value for log2 fold change
+log2FC_cutoff = 1
+
+# Calculate the total number of significant entries
+TOTAL = len(df[df['padj'] <= 0.05])
+
+# Calculate the number of significant entries with positive log2 fold change
+UP = len(df[(df['padj'] <= 0.05) & (df['log2FoldChange'] > 0)])
+
+# Calculate the number of significant entries with negative log2 fold change
+DOWN = len(df[(df['padj'] <= 0.05) & (df['log2FoldChange'] < 0)])
+
+# Calculate the number of significant entries with positive log2 fold change greater than the cutoff
+UP_withFC = len(df[(df['padj'] <= 0.05) & (df['log2FoldChange'] > log2FC_cutoff)])
+
+# Calculate the number of significant entries with negative log2 fold change less than the negative cutoff
+DOWN_withFC = len(df[(df['padj'] <= 0.05) & (df['log2FoldChange'] < -log2FC_cutoff)])
+
+# Calculate the total number of significant entries with an absolute fold change greater than the cutoff
+TOTAL_sign = len(df[(df['padj'] <= 0.05) & (df['log2FoldChange'].abs() > log2FC_cutoff)])
+
+gene_name_DEG = df[(df['padj'] <= 0.05) & (df['log2FoldChange'].abs() > log2FC_cutoff)]['gene_name'].tolist()
+
+```
+
+## Number of Differentially Expressed Genes:
+
+- Total: `{python} TOTAL`
+- Up regulated: `{python} UP`
+- Down regulated: `{python} DOWN`
+- Total significant with |FC| > `{python} log2FC_cutoff`: `{python} TOTAL_sign`
+- Up regulated with FC > `{python} log2FC_cutoff`: `{python} UP_withFC`
+- Down regulated with FC < -`{python} log2FC_cutoff`: `{python} DOWN_withFC`
+
 ## Volcano plot
 
 ```{python}
@@ -44,13 +79,13 @@ color_palette = ('#00BFC4','#F8766D') #treated, control
 ## plotly
 ```{python}
 #| column: screen-inset-right
-volcano_plotly(df, cutoff_fc=0.58, cutoff_p=0.05,highlight_n=30,xlim=(-5,5),color_palette=color_palette)
+volcano_plotly(df, cutoff_fc=log2FC_cutoff, cutoff_p=0.05,highlight_n=30,xlim=(-5,5),color_palette=color_palette)
 ```
 
 ## cleaned
 ```{python}
 #| column: screen-inset-right
-volcano_matplotlib_with_textalloc(df,cutoff_p=0.05,highlight_n=30,x_range=(-8,8),color_palette=color_palette)
+volcano_matplotlib_with_textalloc(df,cutoff_p=0.05,cutoff_fc=log2FC_cutoff,highlight_n=30,x_range=(-8,8),color_palette=color_palette)
 ```
 :::
 
