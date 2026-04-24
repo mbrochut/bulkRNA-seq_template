@@ -64,9 +64,9 @@ gene_name_DEG = df[(df['padj'] <= 0.05) & (df['log2FoldChange'].abs() > log2FC_c
 - Total: `{python} TOTAL`
 - Up regulated: `{python} UP`
 - Down regulated: `{python} DOWN`
-- Total significant with |FC| > `{python} log2FC_cutoff`: `{python} TOTAL_sign`
-- Up regulated with FC > `{python} log2FC_cutoff`: `{python} UP_withFC`
-- Down regulated with FC < -`{python} log2FC_cutoff`: `{python} DOWN_withFC`
+- Total significant with |log2(FC)| > `{python} log2FC_cutoff`: `{python} TOTAL_sign`
+- Up regulated with log2(FC) > `{python} log2FC_cutoff`: `{python} UP_withFC`
+- Down regulated with log2(FC) < -`{python} log2FC_cutoff`: `{python} DOWN_withFC`
 
 ## Volcano plot
 
@@ -78,13 +78,13 @@ color_palette = ('#00BFC4','#F8766D') #treated, control
 
 ## plotly
 ```{python}
-#| column: screen-inset-right
+#| column: page
 volcano_plotly(df, cutoff_fc=log2FC_cutoff, cutoff_p=0.05,highlight_n=30,xlim=(-5,5),color_palette=color_palette)
 ```
 
 ## cleaned
 ```{python}
-#| column: screen-inset-right
+#| column: page
 volcano_matplotlib_with_textalloc(df,cutoff_p=0.05,cutoff_fc=log2FC_cutoff,highlight_n=30,x_range=(-8,8),color_palette=color_palette)
 ```
 :::
