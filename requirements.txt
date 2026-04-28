@@ -21,7 +21,7 @@ fonttools==4.62.1
 formulaic==1.2.1
 formulaic-contrasts==1.0.0
 google-crc32c==1.8.0
-gseapy==1.1.13
+gseapy==1.2.1
 h5py==3.16.0
 idna==3.11
 igraph==1.0.0
