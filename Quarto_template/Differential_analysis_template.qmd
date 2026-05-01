@@ -79,7 +79,10 @@ color_palette = ('#00BFC4','#F8766D') #treated, control
 ## plotly
 ```{python}
 #| column: page
+#| output: asis
 volcano_plotly(df, cutoff_fc=log2FC_cutoff, cutoff_p=0.05,highlight_n=30,xlim=(-5,5),color_palette=color_palette)
+# output asis is necessery with fig.show(config={"responsive": True}) in volcano_plotly function in order to have the correct size.
+# it's a wierd behaviour (bug) with javascript and quarto rendering where the first plotly graph is not well rendered.
 ```
 
 ## cleaned
