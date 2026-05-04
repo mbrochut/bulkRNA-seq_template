@@ -1,55 +1,39 @@
 import os
 import shutil
 from ruamel.yaml import YAML
+import yaml
+# --------------------------------------------------
+# Load config
+# --------------------------------------------------
+with open("config.yaml") as f:
+    config = yaml.safe_load(f)
 
 # --------------------------------------------------
-# Parameters
+# Parameters from config
 # --------------------------------------------------
-contrast_folder = "./results/contrasts/"
-output_folder = "./QUARTO/"
-template_dir = "./Quarto_template/"
+params = config.get("05_generate_quarto", {})
+general = config.get("general", {})
 
-project_title = "HSPC Aging"
-author_name = "Maelick Brochut"
-split_to_remove = 1
-organism = 'mouse'
+contrast_folder = params.get("contrast_folder", "./results/contrasts/")
+output_folder = params.get("output_folder", "./QUARTO/")
+template_dir = params.get("template_dir", "./Quarto_template/")
+
+project_title = params.get("project_title", "My Project")
+author_name = params.get("author_name", "Author")
+split_to_remove = params.get("split_to_remove", 1)
+
+organism = general.get("organism", "Human")
 # --------------------------------------------------
-# Modules definition
-# mode:
-#   - "menu"   → multiple pages (per contrast)
-#   - "single" → one static page
+# LOAD MODULES
 # --------------------------------------------------
-modules = {
-    "Quality Control": {
-        "type": "single",
-        "file": "QC.qmd",
-        "include": True,
-    },
-    "Differential Analysis": {
-        "type": "menu",
-        "template": "Differential_analysis_template.qmd",
-        "prefix": "",
-        "include": True,
-        "model": 'condition'
-    },
-    "TF Inference": {
-        "type": "menu",
-        "template": "TF_inference_template.qmd",
-        "prefix": "TF_",
-        "include": True,
-        "model": 'condition'
-    },
-    "Pathway Summary": {
-        "type": "single",
-        "file": "pathway_summary.qmd",
-        "include": True,
-    },
-    "Venn": {
-        "type": "single",
-        "file": "venn.qmd",
-        "include": True,
-    },
-}
+modules_config = params.get("modules", {})
+modules = {}
+
+for key, mod in modules_config.items():
+    if not mod.get("include", False):
+        continue  # skip disabled modules
+
+    modules[mod["name"]] = mod
 
 yaml = YAML()
 yaml.default_flow_style = False

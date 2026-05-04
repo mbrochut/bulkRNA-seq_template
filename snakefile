@@ -8,12 +8,45 @@ def get_contrast_outputs(config):
         for c1, c2 in contrasts
     ]
 
+
+def get_pathway_outputs(config):
+    contrasts = config["03_create_contrast"]["paired_contrast"]
+
+    # Build contrast names
+    contrast_names = [
+        f"{c2}_VS_{c1}"
+        for c1, c2 in contrasts
+    ]
+
+    gsea_dbs = ["GO", "KEGG", "Hallmark"]
+    ora_types = ["ALL", "UP", "DOWN"]
+
+    outputs = []
+
+    for contrast in contrast_names:
+        # GSEA files
+        for db in gsea_dbs:
+            outputs.append(
+                f"results/pathway/GSEA/GSEA_{db}_condition_{contrast}.csv"
+            )
+
+        # ORA files (only GO)
+        for t in ora_types:
+            outputs.append(
+                f"results/pathway/ORA/ORA_GO_condition_{contrast}_{t}.csv"
+            )
+
+    return outputs
+
 CONTRAST_OUTPUTS = get_contrast_outputs(config)
+PATHWAY_OUTPUTS = get_pathway_outputs(config)
+print(PATHWAY_OUTPUTS)
 
 rule all:
     input:
         "results/papermill/02_data_exploration.ipynb",
-        CONTRAST_OUTPUTS
+        CONTRAST_OUTPUTS,
+        PATHWAY_OUTPUTS
 
 rule init_repo:
     output:
@@ -83,6 +116,24 @@ rule create_contrasts:
             "condition": config["general"]["condition"],
             "design": config["03_create_contrast"]["design"],
             "path_adata_filter": config["paths"]["adata_filtered"],
+        })
+    shell:
+        """
+        papermill {input.nb} {output.nb} \
+            -y '{params.yaml_params}'
+        """
+
+
+rule compute_pathway:
+    input:
+        nb="04_compute_pathway_per_contrast.ipynb",
+        contrasts=CONTRAST_OUTPUTS
+    output:
+        nb="results/papermill/04_compute_pathway_per_contrast.ipynb",
+        results=PATHWAY_OUTPUTS
+    params:
+        yaml_params=lambda wc: yaml.dump({
+            "organism": config["general"]["organism"]
         })
     shell:
         """

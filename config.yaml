@@ -30,3 +30,54 @@ paths:
 
 04_compute_pathway_per_contrast:
   # uses general.organism
+
+
+# --------------------------------------------------
+# Modules definition
+# mode:
+#   - "menu"   → multiple pages (per contrast)
+#   - "single" → one static page
+# --------------------------------------------------
+05_generate_quarto:
+  contrast_folder: "results/contrasts/"
+  output_folder: "QUARTO/"
+  template_dir: "Quarto_template/"
+
+  project_title: "HSPC Aging"
+  author_name: "Maelick Brochut"
+  split_to_remove: 1
+
+  modules:
+    QC:
+      name: "Quality Control"
+      type: "single"
+      file: "QC.qmd"
+      include: true
+
+    DE:
+      name: "Differential Analysis"
+      type: "menu"
+      template: "Differential_analysis_template.qmd"
+      prefix: ""
+      model: "condition"
+      include: true
+
+    TF:
+      name: "TF Inference"
+      type: "menu"
+      template: "TF_inference_template.qmd"
+      prefix: "TF_"
+      model: "condition"
+      include: true   # example toggle
+
+    pathway:
+      name: "Pathway Summary"
+      type: "single"
+      file: "pathway_summary.qmd"
+      include: true
+
+    venn:
+      name: "Venn"
+      type: "single"
+      file: "venn.qmd"
+      include: true
