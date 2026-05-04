@@ -20,6 +20,7 @@ def create_directories(organism):
         "results/pathway/ORA",
         "results/pathway/GSEA_object",
         "results/QC",
+        "results/papermill"
     ]
 
     for d in dirs:

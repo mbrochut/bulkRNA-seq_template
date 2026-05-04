@@ -1,0 +1,30 @@
+general:
+  organism: Mouse
+  condition: condition
+
+paths:
+  counts: "data/salmon.merged.gene_counts.tsv"
+  metadata: "meta/meta.xlsx"
+  adata_filtered: "data/adata_filter_genes.h5ad"
+
+01_create_anndata_object:
+  gene_id_col: "gene_id"
+  condition_columns: ["treatment","Age"]
+  filtering_sum: 10
+
+02_data_exploration:
+  # uses general.condition
+  # uses paths.adata_filtered
+  design: null   # optional override
+
+03_create_contrast:
+  paired_contrast:
+    - ["Control_Young","Trained_Young"]
+    - ["Control_Young","Control_Old"]
+    - ["Control_Old","Trained_Old"]
+    - ["Trained_Young","Trained_Old"]
+  # uses general.condition
+  design: null   # optional override
+
+04_compute_pathway_per_contrast:
+  # uses general.organism
