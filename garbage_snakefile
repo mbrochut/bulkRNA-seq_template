@@ -19,7 +19,7 @@ rule create_anndata:
             -p path_to_your_data "{params.counts}" \
             -p path_to_your_metadata "{params.metadata}" \
             -p gene_id_col "{params.gene_id}" \
-            -p condition_columns '{params.condition_columns}' \
+            -p condition_columns "{params.condition_columns}" \
             -p filtering_sum {params.filtering_sum} \
             -p adata_output "{params.adata_out}"
         """

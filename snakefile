@@ -1,9 +1,10 @@
 configfile: "config.yaml"
+import yaml
 
 def get_contrast_outputs(config):
     contrasts = config["03_create_contrast"]["paired_contrast"]
     return [
-        f"results/contrasts/condition_{c1}_VS_{c2}.csv"
+        f"results/contrasts/condition_{c2}_VS_{c1}.csv"
         for c1, c2 in contrasts
     ]
 
@@ -33,22 +34,21 @@ rule create_anndata:
         nb="results/papermill/01_create_anndata_object.ipynb",
         adata=config["paths"]["adata_filtered"]
     params:
-        counts=config["paths"]["counts"],
-        metadata=config["paths"]["metadata"],
-        gene_id=config["01_create_anndata_object"]["gene_id_col"],
-        condition_columns=config["01_create_anndata_object"]["condition_columns"],
-        filtering_sum=config["01_create_anndata_object"]["filtering_sum"],
+        yaml_params=lambda wc: yaml.dump({
+            "path_to_your_data": config["paths"]["counts"],
+            "path_to_your_metadata": config["paths"]["metadata"],
+            "gene_id_col": config["01_create_anndata_object"]["gene_id_col"],
+            "condition_columns": config["01_create_anndata_object"]["condition_columns"],
+            "filtering_sum": config["01_create_anndata_object"]["filtering_sum"],
+            "adata_output": config["paths"]["adata_filtered"],
+        }),
         adata_out=config["paths"]["adata_filtered"]
     shell:
         """
         papermill {input.nb} {output.nb} \
-            -p path_to_your_data "{params.counts}" \
-            -p path_to_your_metadata "{params.metadata}" \
-            -p gene_id_col "{params.gene_id}" \
-            -p condition_columns '{params.condition_columns}' \
-            -p filtering_sum {params.filtering_sum} \
-            -p adata_output "{params.adata_out}"
+            -y '{params.yaml_params}'
         """
+
 
 
 rule data_exploration:
@@ -58,14 +58,15 @@ rule data_exploration:
     output:
         nb="results/papermill/02_data_exploration.ipynb"
     params:
-        condition=config["general"]["condition"],
-        design=config["02_data_exploration"]["design"]
+        yaml_params=lambda wc: yaml.dump({
+            "path_adata_filter": config["paths"]["adata_filtered"],
+            "condition": config["general"]["condition"],
+            "design": config["02_data_exploration"]["design"],
+        })
     shell:
         """
         papermill {input.nb} {output.nb} \
-            -p path_adata_filter "{input.adata}" \
-            -p condition "{params.condition}" \
-            -p design "{params.design}"
+            -y '{params.yaml_params}'
         """
 
 
@@ -77,14 +78,14 @@ rule create_contrasts:
         nb="results/papermill/03_create_contrast.ipynb",
         csvs=CONTRAST_OUTPUTS
     params:
-        paired_contrast=config["03_create_contrast"]["paired_contrast"],
-        condition=config["general"]["condition"],
-        design=config["03_create_contrast"]["design"]
+        yaml_params=lambda wc: yaml.dump({
+            "paired_contrast": config["03_create_contrast"]["paired_contrast"],
+            "condition": config["general"]["condition"],
+            "design": config["03_create_contrast"]["design"],
+            "path_adata_filter": config["paths"]["adata_filtered"],
+        })
     shell:
         """
         papermill {input.nb} {output.nb} \
-            -p paired_contrast '{params.paired_contrast}' \
-            -p condition "{params.condition}" \
-            -p design "{params.design}" \
-            -p path_adata_filter "{input.adata}"
+            -y '{params.yaml_params}'
         """

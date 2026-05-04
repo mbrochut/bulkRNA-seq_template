@@ -9,7 +9,9 @@ paths:
 
 01_create_anndata_object:
   gene_id_col: "gene_id"
-  condition_columns: ["treatment","Age"]
+  condition_columns: 
+    - 'treatment'
+    - 'Age'
   filtering_sum: 10
 
 02_data_exploration:
