@@ -161,7 +161,7 @@ show(ora_res_down_todisplay,maxBytes=0)
 ```{python}
 gsea_res_mouse_go = pd.read_csv(f"../results/pathway/GSEA/GSEA_GO_{contrast}.csv",sep=';')
 gsea_res_mouse_kegg = pd.read_csv(f"../results/pathway/GSEA/GSEA_KEGG_{contrast}.csv",sep=';')
-gsea_res_mouse_HM = pd.read_csv(f"../results/pathway/GSEA/GSEA_HM_{contrast}.csv",sep=';')
+gsea_res_mouse_HM = pd.read_csv(f"../results/pathway/GSEA/GSEA_Hallmark_{contrast}.csv",sep=';')
 ```
 
 ### GSEA plot
