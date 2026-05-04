@@ -1,51 +1,64 @@
 general:
   organism: Mouse
-  condition: condition
+  condition: condition  # Name of the column used for contrasts.
+                        # This column is automatically created from `condition_columns`.
+                        # Do not modify unless you know what you're doing.
 
 paths:
   counts: "data/salmon.merged.gene_counts.tsv"
   metadata: "meta/meta.xlsx"
   adata_filtered: "data/adata_filter_genes.h5ad"
 
+
+# --------------------------------------------------
+# Define which metadata columns are combined to create
+# the `condition` column (used for all downstream analyses).
+# You can include one or multiple columns.
+# --------------------------------------------------
 01_create_anndata_object:
   gene_id_col: "gene_id"
-  condition_columns: 
-    - 'treatment'
-    - 'Age'
+  condition_columns:
+    - "treatment"
+    - "Age"
   filtering_sum: 10
 
-02_data_exploration:
-  # uses general.condition
-  # uses paths.adata_filtered
-  design: null   # optional override
 
+02_data_exploration:
+  # Uses `general.condition`
+  design: null   # Optional override (default: ~condition)
+
+
+# --------------------------------------------------
+# Define pairwise contrasts based on the `condition` column.
+# Each pair is: [reference, test]
+# Example: ["Control", "Treatment"]
+# --------------------------------------------------
 03_create_contrast:
   paired_contrast:
-    - ["Control_Young","Trained_Young"]
-    - ["Control_Young","Control_Old"]
-    - ["Control_Old","Trained_Old"]
-    - ["Trained_Young","Trained_Old"]
-  # uses general.condition
-  design: null   # optional override
-
+    - ["Control_Young", "Trained_Young"]
+    - ["Control_Old", "Trained_Old"]
+  # Uses `general.condition`
+  design: null   # Optional override (default: ~condition)
 04_compute_pathway_per_contrast:
   # uses general.organism
 
 
 # --------------------------------------------------
 # Modules definition
-# mode:
-#   - "menu"   → multiple pages (per contrast)
-#   - "single" → one static page
+#   - type: "menu"/"single"
+#        -"menu"   → multiple pages (per contrast)
+#        -"single" → one static page
+#   - file: file name in Quarto_template
+#   - include: true/false
 # --------------------------------------------------
 05_generate_quarto:
   contrast_folder: "results/contrasts/"
   output_folder: "QUARTO/"
   template_dir: "Quarto_template/"
 
-  project_title: "HSPC Aging"
-  author_name: "Maelick Brochut"
-  split_to_remove: 1
+  project_title: "YOUR TITLE"
+  author_name: "AUTHOR NAME"
+  split_to_remove: 1 # for now this parameter is used to isolate the contrast name in generation of files.
 
   modules:
     QC:
@@ -68,7 +81,7 @@ paths:
       template: "TF_inference_template.qmd"
       prefix: "TF_"
       model: "condition"
-      include: true   # example toggle
+      include: true  
 
     pathway:
       name: "Pathway Summary"
