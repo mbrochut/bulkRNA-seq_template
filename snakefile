@@ -46,7 +46,8 @@ rule all:
     input:
         "results/papermill/02_data_exploration.ipynb",
         CONTRAST_OUTPUTS,
-        PATHWAY_OUTPUTS
+        PATHWAY_OUTPUTS,
+        "QUARTO/_quarto.yml"
 
 rule init_repo:
     output:
@@ -139,4 +140,15 @@ rule compute_pathway:
         """
         papermill {input.nb} {output.nb} \
             -y '{params.yaml_params}'
+        """
+
+
+rule generate_quarto:
+    input:
+        PATHWAY_OUTPUTS
+    output:
+        "QUARTO/_quarto.yml"
+    shell:
+        """
+        python 05_generate_quarto_files.py
         """
