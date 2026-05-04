@@ -44,6 +44,7 @@ print(PATHWAY_OUTPUTS)
 
 rule all:
     input:
+        "results/.init_done",
         "results/papermill/02_data_exploration.ipynb",
         CONTRAST_OUTPUTS,
         PATHWAY_OUTPUTS,
