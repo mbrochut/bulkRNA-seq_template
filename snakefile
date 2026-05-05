@@ -48,7 +48,8 @@ rule all:
         "results/papermill/02_data_exploration.ipynb",
         CONTRAST_OUTPUTS,
         PATHWAY_OUTPUTS,
-        "QUARTO/_quarto.yml"
+        "QUARTO/_quarto.yml",
+        "QUARTO/_site"
 
 rule init_repo:
     output:
@@ -152,4 +153,16 @@ rule generate_quarto:
     shell:
         """
         python 05_generate_quarto_files.py
+        """
+
+rule quarto_render:
+    input:
+        "QUARTO/_quarto.yml",
+        PATHWAY_OUTPUTS,
+        CONTRAST_OUTPUTS
+    output:
+        directory("QUARTO/_site")
+    shell:
+        """
+        quarto render QUARTO/
         """

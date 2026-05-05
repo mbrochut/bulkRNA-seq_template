@@ -205,29 +205,88 @@ results/pathway/
 
 ---
 
-### **05_generate_quarto_contrast_file.py**
+## Quarto Report Generation (`05_generate_quarto_files.py`)
 
-```bash
-python 05_generate_quarto_contrast_file.py
-```
-
-This script:
-
-* Generates one `.qmd` per contrast from a template
-* Copies:
-
-  * `QC.qmd`
-  * `utils.py`
-* Creates `_quarto.yml` automatically
-
----
-
-## Quarto Report
 
 ### Install Quarto
 
 Not sure if necessary
 https://quarto.org/docs/download/
+
+Quarto report generation is now fully driven by the `config.yaml` file.  
+This step is mandatory and no longer relies on hardcoded parameters.
+
+### Configuration (`config.yaml`)
+
+The section `05_generate_quarto` controls how the report is built:
+
+```yaml
+05_generate_quarto:
+  contrast_folder: "results/contrasts/"
+  output_folder: "QUARTO/"
+  template_dir: "Quarto_template/"
+
+  project_title: "YOUR TITLE"
+  author_name: "AUTHOR NAME"
+  split_to_remove: 1 # for now this parameter is used to isolate the contrast name in generation of files.
+
+  modules:
+    QC:
+      name: "Quality Control"
+      type: "single"
+      file: "QC.qmd"
+      include: true
+
+    DE:
+      name: "Differential Analysis"
+      type: "menu"
+      template: "Differential_analysis_template.qmd"
+      prefix: ""
+      model: "condition"
+      include: true
+```
+
+### Modules system
+By default, all the modules are include.
+Modules define what appears in the final Quarto report.
+
+Each module has:
+
+| Parameter | Description |
+|----------|------------|
+| `name` | Display name in the navbar |
+| `type` | `"single"` or `"menu"` |
+| `include` | Enable or disable the module |
+| `file` | (single) static `.qmd` file |
+| `template` | (menu) template used to generate multiple pages |
+| `prefix` | Prefix added to generated files |
+| `model` | Column used to group contrasts |
+
+### Module types
+
+#### Single
+
+- One static `.qmd` file
+- Used for global sections (QC, Venn, summary)
+
+#### Menu
+
+- Generates one page per contrast
+- Uses a template located in `Quarto_template/`
+- 
+
+The script automatically:
+- loops over contrasts
+- fills the template
+- creates one `.qmd` per contrast
+- adds them to the Quarto navbar
+
+
+### Run Quarto generation
+
+```
+python 05_generate_quarto_files.py
+```
 
 ### Generate report
 
@@ -236,13 +295,103 @@ cd QUARTO
 quarto render
 ```
 
-Outputs a full website with:
-
-* QC page
-* One page per contrast
-* Interactive plots
-
 ---
+
+# Snakemake Pipeline
+
+A Snakemake pipeline is provided to automate the full workflow.
+
+to lunch the pipeline:
+```
+snakemake --cores N # use N as the number of core you want to use
+```
+
+
+## Required configuration
+
+The pipeline relies on `config.yaml`.  
+You must define at least:
+
+```yaml
+general:
+  organism: Mouse # CHOSE YOUR ORGANISM: Human or Mouse
+
+paths:
+  counts: "data/salmon.merged.gene_counts.tsv"
+  metadata: "meta/meta.xlsx"
+
+01_create_anndata_object:
+  gene_id_col: "gene_id" # Colname of gene id (gene_id from the NF-core pieline)
+  condition_columns: # Define which metadata columns are combined to create the `condition` column 
+    - "treatment"
+    - "Age"
+
+03_create_contrast:
+  paired_contrast:
+    - ["Control_Young","Trained_Young"] # always: [reference, test] in that order. example: ["control", "treated"]
+```
+
+
+## Key parameters
+
+| Parameter | Description |
+|----------|------------|
+| `organism` | Used for pathway databases (GSEA / ORA) |
+| `counts` | Gene count matrix |
+| `metadata` | Sample metadata |
+| `gene_id_col` | Column containing gene identifiers |
+| `condition_columns` | Columns combined to build the `condition` variable |
+| `paired_contrast` | List of comparisons `[reference, test]` |
+
+
+
+## Pipeline steps
+
+The pipeline executes the following steps:
+
+1. Initialization (folder structure and database download)
+2. AnnData creation
+3. Data exploration
+4. Differential expression (DESeq2)
+5. Pathway analysis (GSEA / ORA)
+6. Quarto file generation
+7. Quarto rendering
+
+
+
+## Initialization behavior
+
+The pipeline automatically handles initialization:
+
+- If the project is not initialized, it will create the structure and download databases
+- If already initialized, the step is skipped
+- If databases already exist, they are reused
+
+If you change the `organism`, make sure the corresponding databases exist or rerun initialization.
+
+
+
+## Run full pipeline
+
+```
+snakemake --cores 8
+```
+
+
+
+## Run a specific step
+
+```
+snakemake quarto_render
+```
+
+
+## Notes
+
+- Notebooks can still be run independently without Snakemake
+- The YAML file ensures reproducibility and consistency across the pipeline
+- The module system allows easy extension (e.g. TF inference or additional analyses)
+
 
 ## 🎉 Summary
 
@@ -258,14 +407,6 @@ This pipeline provides:
 ## In Progress
 
 The following features are currently under development:
-
-* **Snakemake pipeline**
-
-* **Transcription Factor Inference**
-  → Identification of key regulatory TFs driving expression changes with decoupleR package
-
-* **Summary of Pathway Analysis**
-  → Aggregated view across contrasts (global enrichment patterns)
 
 * **Heatmaps**
   → Improved visualization of gene expression and pathway activity for specific genes of interest
